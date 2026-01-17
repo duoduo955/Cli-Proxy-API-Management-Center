@@ -14,7 +14,7 @@ import styles from './ApiKeysPage.module.scss';
 
 export function ApiKeysPage() {
   const { t } = useTranslation();
-  const { showNotification } = useNotificationStore();
+  const { showNotification, showConfirmation } = useNotificationStore();
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
 
   const config = useConfigStore((state) => state.config);
@@ -29,7 +29,6 @@ export function ApiKeysPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [saving, setSaving] = useState(false);
-  const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
 
   const disableControls = useMemo(() => connectionStatus !== 'connected', [connectionStatus]);
 
@@ -115,21 +114,42 @@ export function ApiKeysPage() {
     }
   };
 
-  const handleDelete = async (index: number) => {
-    if (!window.confirm(t('api_keys.delete_confirm'))) return;
-    setDeletingIndex(index);
-    try {
-      await apiKeysApi.delete(index);
-      const nextKeys = apiKeys.filter((_, idx) => idx !== index);
-      setApiKeys(nextKeys);
-      updateConfigValue('api-keys', nextKeys);
-      clearCache('api-keys');
-      showNotification(t('notification.api_key_deleted'), 'success');
-    } catch (err: any) {
-      showNotification(`${t('notification.delete_failed')}: ${err?.message || ''}`, 'error');
-    } finally {
-      setDeletingIndex(null);
+  const handleDelete = (index: number) => {
+    const apiKeyToDelete = apiKeys[index];
+    if (!apiKeyToDelete) {
+      showNotification(t('notification.delete_failed'), 'error');
+      return;
     }
+
+    showConfirmation({
+      title: t('common.delete'),
+      message: t('api_keys.delete_confirm'),
+      variant: 'danger',
+      onConfirm: async () => {
+        const latestKeys = useConfigStore.getState().config?.apiKeys;
+        const currentKeys = Array.isArray(latestKeys) ? latestKeys : [];
+        const deleteIndex =
+          currentKeys[index] === apiKeyToDelete
+            ? index
+            : currentKeys.findIndex((key) => key === apiKeyToDelete);
+
+        if (deleteIndex < 0) {
+          showNotification(t('notification.delete_failed'), 'error');
+          return;
+        }
+
+        try {
+          await apiKeysApi.delete(deleteIndex);
+          const nextKeys = currentKeys.filter((_, idx) => idx !== deleteIndex);
+          setApiKeys(nextKeys);
+          updateConfigValue('api-keys', nextKeys);
+          clearCache('api-keys');
+          showNotification(t('notification.api_key_deleted'), 'success');
+        } catch (err: any) {
+          showNotification(`${t('notification.delete_failed')}: ${err?.message || ''}`, 'error');
+        }
+      }
+    });
   };
 
   const actionButtons = (
@@ -181,8 +201,7 @@ export function ApiKeysPage() {
                     variant="danger"
                     size="sm"
                     onClick={() => handleDelete(index)}
-                    disabled={disableControls || deletingIndex === index}
-                    loading={deletingIndex === index}
+                    disabled={disableControls}
                   >
                     {t('common.delete')}
                   </Button>
