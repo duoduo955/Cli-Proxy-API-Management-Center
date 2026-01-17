@@ -108,7 +108,8 @@ async function fetchCopilotQuota(
   file: AuthFileItem,
   t: TFunction
 ): Promise<{ items: CopilotQuotaItem[]; copilotPlan: string | null; quotaResetDate: string | null }> {
-  const authId = file.auth_id ?? file.authId ?? file.name;
+  // Use file.id as auth_id (backend returns "id" field in buildAuthFileEntry)
+  const authId = file.id ?? file.auth_id ?? file.authId ?? file.name;
   if (!authId) {
     throw new Error(t('copilot_quota.missing_auth_id'));
   }
