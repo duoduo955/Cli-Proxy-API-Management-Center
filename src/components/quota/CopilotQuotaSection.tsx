@@ -306,6 +306,55 @@ function useGridColumns(minCardWidth: number): [number, React.RefObject<HTMLDivE
   return [columns, ref];
 }
 
+// Pagination hook
+type ViewMode = 'paged' | 'all';
+const MAX_ITEMS_PER_PAGE = 14;
+const MAX_SHOW_ALL_THRESHOLD = 30;
+
+function useCopilotPagination<T>(items: T[], columns: number, viewMode: ViewMode) {
+  const [page, setPage] = useState(1);
+
+  const pageSize = useMemo(() => {
+    if (viewMode === 'all') {
+      return Math.max(1, items.length);
+    }
+    return Math.min(columns * 3, MAX_ITEMS_PER_PAGE);
+  }, [viewMode, columns, items.length]);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(items.length / pageSize)),
+    [items.length, pageSize]
+  );
+
+  const currentPage = useMemo(() => Math.min(page, totalPages), [page, totalPages]);
+
+  const pageItems = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return items.slice(start, start + pageSize);
+  }, [items, currentPage, pageSize]);
+
+  const goToPrev = useCallback(() => {
+    setPage((prev) => Math.max(1, prev - 1));
+  }, []);
+
+  const goToNext = useCallback(() => {
+    setPage((prev) => Math.min(totalPages, prev + 1));
+  }, [totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [viewMode]);
+
+  return {
+    pageSize,
+    totalPages,
+    currentPage,
+    pageItems,
+    goToPrev,
+    goToNext
+  };
+}
+
 // Main section component
 interface CopilotQuotaSectionProps {
   files: AuthFileItem[];
@@ -318,13 +367,37 @@ export function CopilotQuotaSection({ files, loading, disabled }: CopilotQuotaSe
   const resolvedTheme: ResolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const { quotaMap, setQuota, clearQuota } = useCopilotQuotaStore();
 
-  const [, gridRef] = useGridColumns(380);
+  const [columns, gridRef] = useGridColumns(380);
   const [sectionLoading, setSectionLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('paged');
+  const [showTooManyWarning, setShowTooManyWarning] = useState(false);
 
   const filteredFiles = useMemo(() => files.filter(isCopilotFile), [files]);
+  const showAllAllowed = filteredFiles.length <= MAX_SHOW_ALL_THRESHOLD;
+  const effectiveViewMode: ViewMode = viewMode === 'all' && !showAllAllowed ? 'paged' : viewMode;
+
+  const { pageSize, totalPages, currentPage, pageItems, goToPrev, goToNext } =
+    useCopilotPagination(filteredFiles, columns, effectiveViewMode);
 
   const pendingRefreshRef = useRef(false);
   const prevLoadingRef = useRef(loading);
+
+  // Auto-switch to paged mode if too many files
+  useEffect(() => {
+    if (showAllAllowed) return;
+    if (viewMode !== 'all') return;
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setViewMode('paged');
+      setShowTooManyWarning(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showAllAllowed, viewMode]);
 
   // Load quota for a single file
   const loadQuotaForFile = useCallback(
@@ -403,6 +476,28 @@ export function CopilotQuotaSection({ files, loading, disabled }: CopilotQuotaSe
       title={titleNode}
       extra={
         <div className={styles.headerActions}>
+          <div className={styles.viewModeToggle}>
+            <Button
+              variant={effectiveViewMode === 'paged' ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setViewMode('paged')}
+            >
+              {t('auth_files.view_mode_paged')}
+            </Button>
+            <Button
+              variant={effectiveViewMode === 'all' ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => {
+                if (filteredFiles.length > MAX_SHOW_ALL_THRESHOLD) {
+                  setShowTooManyWarning(true);
+                } else {
+                  setViewMode('all');
+                }
+              }}
+            >
+              {t('auth_files.view_mode_all')}
+            </Button>
+          </div>
           <Button
             variant="secondary"
             size="sm"
@@ -423,15 +518,49 @@ export function CopilotQuotaSection({ files, loading, disabled }: CopilotQuotaSe
           description={t('copilot_quota.empty_desc')}
         />
       ) : (
-        <div ref={gridRef} className={styles.copilotGrid}>
-          {filteredFiles.map((item) => (
-            <CopilotQuotaCard
-              key={item.name}
-              item={item}
-              quota={quotaMap[item.name]}
-              resolvedTheme={resolvedTheme}
-            />
-          ))}
+        <>
+          <div ref={gridRef} className={styles.copilotGrid}>
+            {pageItems.map((item) => (
+              <CopilotQuotaCard
+                key={item.name}
+                item={item}
+                quota={quotaMap[item.name]}
+                resolvedTheme={resolvedTheme}
+              />
+            ))}
+          </div>
+          {filteredFiles.length > pageSize && effectiveViewMode === 'paged' && (
+            <div className={styles.pagination}>
+              <Button variant="secondary" size="sm" onClick={goToPrev} disabled={currentPage <= 1}>
+                {t('auth_files.pagination_prev')}
+              </Button>
+              <div className={styles.pageInfo}>
+                {t('auth_files.pagination_info', {
+                  current: currentPage,
+                  total: totalPages,
+                  count: filteredFiles.length
+                })}
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={goToNext}
+                disabled={currentPage >= totalPages}
+              >
+                {t('auth_files.pagination_next')}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+      {showTooManyWarning && (
+        <div className={styles.warningOverlay} onClick={() => setShowTooManyWarning(false)}>
+          <div className={styles.warningModal} onClick={(e) => e.stopPropagation()}>
+            <p>{t('auth_files.too_many_files_warning')}</p>
+            <Button variant="primary" size="sm" onClick={() => setShowTooManyWarning(false)}>
+              {t('common.confirm')}
+            </Button>
+          </div>
         </div>
       )}
     </Card>
