@@ -115,7 +115,7 @@ async function fetchCopilotQuota(
   }
 
   const response = await apiClient.get<CopilotUsageResponse>(
-    `/v0/management/copilot/quota?auth_id=${encodeURIComponent(authId)}`
+    `/copilot/quota?auth_id=${encodeURIComponent(authId)}`
   );
 
   const items = buildCopilotQuotaItems(response.quota_snapshots, t);
