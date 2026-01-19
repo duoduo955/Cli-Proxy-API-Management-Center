@@ -67,17 +67,6 @@ function buildKiroQuotaItems(
     unit: '$'
   });
 
-  // Context Usage
-  items.push({
-    id: 'context_usage',
-    label: t('kiro_quota.context_usage'),
-    labelKey: 'kiro_quota.context_usage',
-    percentUsed: usage.context_usage_percent,
-    usage: usage.context_usage_percent,
-    limit: usage.monthly_context_limit,
-    unit: '%'
-  });
-
   return items;
 }
 
