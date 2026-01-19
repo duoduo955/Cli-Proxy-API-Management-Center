@@ -473,7 +473,8 @@
     "refresh_button": "刷新额度",
     "plan_label": "订阅",
     "credit_usage": "信用额度使用",
-    "context_usage": "上下文使用"
+    "reset_date": "额度重置日期",
+    "trial_expiry": "试用期截止"
   },
   "vertex_import": {
     "title": "Vertex JSON 登录",

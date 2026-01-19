@@ -1,9 +1,9 @@
 export interface KiroUsageInfo {
   subscription_title: string;
   credit_usage: number;
-  context_usage_percent: number;
   monthly_credit_limit: number;
-  monthly_context_limit: number;
+  next_reset_date?: string;
+  trial_expiry_date?: string;
 }
 
 export interface KiroQuotaItem {
@@ -20,6 +20,8 @@ export interface KiroQuotaState {
   status: 'idle' | 'loading' | 'success' | 'error';
   items?: KiroQuotaItem[];
   subscriptionTitle?: string;
+  nextResetDate?: string;
+  trialExpiryDate?: string;
   error?: string;
   errorStatus?: number;
 }

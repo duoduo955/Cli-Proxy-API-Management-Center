@@ -74,7 +74,12 @@ function buildKiroQuotaItems(
 async function fetchKiroQuota(
   file: AuthFileItem,
   t: TFunction
-): Promise<{ items: KiroQuotaItem[]; subscriptionTitle: string | undefined }> {
+): Promise<{ 
+  items: KiroQuotaItem[]; 
+  subscriptionTitle: string | undefined;
+  nextResetDate: string | undefined;
+  trialExpiryDate: string | undefined;
+}> {
   const authId = file.id ?? file.auth_id ?? file.authId ?? file.name;
   if (!authId) {
     throw new Error(t('kiro_quota.missing_auth_id'));
@@ -86,8 +91,10 @@ async function fetchKiroQuota(
 
   const items = buildKiroQuotaItems(response, t);
   const subscriptionTitle = response.subscription_title || undefined;
+  const nextResetDate = response.next_reset_date || undefined;
+  const trialExpiryDate = response.trial_expiry_date || undefined;
 
-  return { items, subscriptionTitle };
+  return { items, subscriptionTitle, nextResetDate, trialExpiryDate };
 }
 
 // Progress bar component (Reusing logic but inverted logic for usage vs remaining?)
@@ -135,6 +142,22 @@ function QuotaProgressBar({
       />
     </div>
   );
+}
+
+// Format date string
+function formatResetDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch {
+    return dateStr;
+  }
 }
 
 // Quota card component
@@ -203,6 +226,18 @@ function KiroQuotaCard({
             </div>
           );
         })}
+        {quota.nextResetDate && (
+          <div className={styles.resetInfo}>
+            <span className={styles.resetLabel}>{t('kiro_quota.reset_date')}</span>
+            <span className={styles.resetValue}>{formatResetDate(quota.nextResetDate)}</span>
+          </div>
+        )}
+        {quota.trialExpiryDate && (
+          <div className={styles.resetInfo}>
+            <span className={styles.resetLabel}>{t('kiro_quota.trial_expiry')}</span>
+            <span className={styles.resetValue}>{formatResetDate(quota.trialExpiryDate)}</span>
+          </div>
+        )}
       </>
     );
   };
@@ -361,11 +396,13 @@ export function KiroQuotaSection({ files, loading, disabled }: KiroQuotaSectionP
     async (file: AuthFileItem) => {
       setQuota(file.name, { status: 'loading', items: [] });
       try {
-        const { items, subscriptionTitle } = await fetchKiroQuota(file, t);
+        const { items, subscriptionTitle, nextResetDate, trialExpiryDate } = await fetchKiroQuota(file, t);
         setQuota(file.name, {
           status: 'success',
           items,
-          subscriptionTitle
+          subscriptionTitle,
+          nextResetDate,
+          trialExpiryDate
         });
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : t('common.unknown_error');

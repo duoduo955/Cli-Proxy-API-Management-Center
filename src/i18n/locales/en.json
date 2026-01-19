@@ -473,7 +473,8 @@
     "refresh_button": "Refresh Quota",
     "plan_label": "Subscription",
     "credit_usage": "Credit Usage",
-    "context_usage": "Context Usage"
+    "reset_date": "Quota reset date",
+    "trial_expiry": "Trial expires on"
   },
   "vertex_import": {
     "title": "Vertex JSON Login",
