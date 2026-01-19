@@ -461,6 +461,20 @@
     "completions": "Completions",
     "unlimited": "Unlimited"
   },
+  "kiro_quota": {
+    "title": "Kiro (AWS CodeWhisperer) Quota",
+    "empty_title": "No Kiro Auth Files",
+    "empty_desc": "Upload a Kiro OAuth credential to view quota.",
+    "idle": "Not loaded. Click Refresh Button.",
+    "loading": "Loading quota...",
+    "load_failed": "Failed to load quota: {{message}}",
+    "missing_auth_id": "Auth file missing auth_id",
+    "empty_items": "No quota data available",
+    "refresh_button": "Refresh Quota",
+    "plan_label": "Subscription",
+    "credit_usage": "Credit Usage",
+    "context_usage": "Context Usage"
+  },
   "vertex_import": {
     "title": "Vertex JSON Login",
     "description": "Upload a Google service account JSON to store it as auth-dir/vertex-<project>.json using the same rules as the CLI vertex-import helper.",

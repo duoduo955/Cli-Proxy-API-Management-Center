@@ -8,3 +8,4 @@ export { useQuotaLoader } from './useQuotaLoader';
 export { ANTIGRAVITY_CONFIG, CODEX_CONFIG, GEMINI_CLI_CONFIG } from './quotaConfigs';
 export type { QuotaConfig } from './quotaConfigs';
 export { CopilotQuotaSection } from './CopilotQuotaSection';
+export { KiroQuotaSection } from './KiroQuotaSection';

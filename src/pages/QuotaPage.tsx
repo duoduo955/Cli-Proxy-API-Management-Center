@@ -12,7 +12,8 @@ import {
   ANTIGRAVITY_CONFIG,
   CODEX_CONFIG,
   GEMINI_CLI_CONFIG,
-  CopilotQuotaSection
+  CopilotQuotaSection,
+  KiroQuotaSection
 } from '@/components/quota';
 import type { AuthFileItem } from '@/types';
 import styles from './QuotaPage.module.scss';
@@ -89,6 +90,11 @@ export function QuotaPage() {
         disabled={disableControls}
       />
       <CopilotQuotaSection
+        files={files}
+        loading={loading}
+        disabled={disableControls}
+      />
+      <KiroQuotaSection
         files={files}
         loading={loading}
         disabled={disableControls}
