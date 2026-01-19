@@ -85,7 +85,7 @@ function buildKiroQuotaItems(
 async function fetchKiroQuota(
   file: AuthFileItem,
   t: TFunction
-): Promise<{ items: KiroQuotaItem[]; subscriptionTitle: string | null }> {
+): Promise<{ items: KiroQuotaItem[]; subscriptionTitle: string | undefined }> {
   const authId = file.id ?? file.auth_id ?? file.authId ?? file.name;
   if (!authId) {
     throw new Error(t('kiro_quota.missing_auth_id'));
@@ -96,7 +96,7 @@ async function fetchKiroQuota(
   );
 
   const items = buildKiroQuotaItems(response, t);
-  const subscriptionTitle = response.subscription_title ?? null;
+  const subscriptionTitle = response.subscription_title || undefined;
 
   return { items, subscriptionTitle };
 }
